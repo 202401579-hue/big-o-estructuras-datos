@@ -5,7 +5,7 @@ import urllib.request
 from statistics import mean
 
 # Pegue aquí la URL RAW del CSV alojado en GitHub.
-URL = "PEGAR_AQUI_URL_RAW"
+URL = "https://raw.githubusercontent.com/202401579-hue/big-o-estructuras-datos/refs/heads/main/data/estudiantes.csv"
 CARNET_BUSCAR = "EST099999"
 REPETICIONES = 100
 
