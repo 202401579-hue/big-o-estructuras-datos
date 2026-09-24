@@ -112,31 +112,64 @@ escenario, porque reparte los valores y el árbol se ramifica en ambas direccion
 
 ## Carnet inexistente (paso 9)
 
+Las cuatro estructuras contienen los mismos 100,000 registros, de modo que la
+comparación es sobre el mismo n. Esta sección se volvió a medir completa después de
+corregir el tamaño de la lista enlazada, que antes se había construido con solo 10,000
+nodos y por eso aparecía artificialmente rápida.
+
 | Estructura | Tiempo buscando EST999999 | Big O |
 |---|---:|---|
-| List | 0.0049407950 s | O(n) siempre |
-| Set | 0.0000001260 s | O(1) promedio |
-| Dict | 0.0000001490 s | O(1) promedio |
-| Lista enlazada | 0.0003419980 s | O(n) siempre |
+| List | 0.0054783110 s | O(n) siempre |
+| Set | 0.0000001290 s | O(1) promedio |
+| Dict | 0.0000001340 s | O(1) promedio |
+| Lista enlazada | 0.0060293760 s | O(n) siempre |
 
 Al no existir el carnet, List y la lista enlazada ya no pueden detenerse al encontrar una
 coincidencia, así que recorren los n elementos completos antes de concluir que no está.
-List tardó 0.00494 s, prácticamente lo mismo que en su búsqueda exitosa del último
-registro, porque en ambos casos revisa toda la colección. Set y Dict, en cambio, casi no
-cambian frente a una búsqueda exitosa (0.000000126 s y 0.000000149 s): el hash los lleva
-directo a la posición donde debería estar el carnet y, al no encontrarlo ahí, responden
-de inmediato sin recorrer nada más. En este caso, List fue unas 39,000 veces más lenta
-que Set.
+List tardó 0.00548 s y la lista enlazada 0.00603 s, prácticamente lo mismo que en sus
+búsquedas exitosas del último registro, porque en ambos casos revisan toda la colección.
+
+La lista enlazada resultó alrededor de un 10% más lenta que List aun teniendo la misma
+cantidad de elementos y la misma complejidad O(n). La razón es que List guarda los datos
+en posiciones contiguas de memoria, mientras que la lista enlazada debe seguir una
+referencia distinta en cada nodo, lo cual es más costoso aunque el número de
+comparaciones sea el mismo. Es un buen ejemplo de que dos estructuras con el mismo Big O
+no tienen por qué tardar lo mismo.
+
+Set y Dict, en cambio, casi no cambian frente a una búsqueda exitosa (0.000000129 s y
+0.000000134 s): el hash los lleva directo a la posición donde debería estar el carnet y,
+al no encontrarlo ahí, responden de inmediato sin recorrer nada más. En esta medición,
+List fue unas 42,000 veces más lenta que Set.
 
 ## Construcción vs consulta (sección 6)
 
+Aclaración previa: no se están comparando dos operaciones equivalentes. Construir es un
+costo único que se paga al iniciar el programa, mientras que buscar es un costo que se
+repite en cada consulta. Lo que se calcula aquí es cuántas consultas hacen falta para
+recuperar esa inversión inicial.
+
 Construir el Set tardó 0.0103227 s y el Dict 0.0169172 s. Es un costo que se paga una
 sola vez, y debe compararse con lo que se ahorra en cada consulta: buscar un carnet en
-List cuesta unos 0.0046 s, mientras que en el Dict cuesta 0.000000149 s, así que cada
+List cuesta unos 0.0046 s, mientras que en el Dict cuesta 0.000000134 s, así que cada
 consulta ahorra prácticamente 0.0046 s. Dividiendo 0.0169 s entre 0.0046 s, construir el
 Dict se paga solo después de unas 4 consultas (y el Set después de unas 3). A partir de
 ahí, cada búsqueda adicional es ganancia neta, lo cual es inmediato en cualquier sistema
 que consulte estudiantes con cierta frecuencia.
+
+También se midió el costo de construir las otras dos estructuras sobre los mismos 100,000
+registros. En esa corrida, armar la lista enlazada tardó 0.0461081 s y armar el BST
+mezclado 0.5944407 s, frente a 0.0247453 s del Dict de la misma ejecución.
+
+El BST resultó unas 24 veces más caro de construir que el Dict, y la razón está en el
+algoritmo: insertar en el Dict es O(1) promedio, así que armarlo cuesta O(n), mientras
+que cada inserción en el árbol tiene que bajar comparando nivel por nivel hasta encontrar
+su lugar, lo que da O(n log n) en total. La lista enlazada quedó en medio porque sus
+inserciones sí son O(1), pero crea un objeto Nodo por registro y eso pesa más que llenar
+una tabla hash.
+
+Esto refuerza la decisión de diseño: el Dictionary no solo gana en la consulta, también
+es de las más baratas de construir. El BST únicamente se justificaría si el sistema
+necesitara recorrer los carnets en orden, que es lo que un Dict no ofrece.
 
 ## Preguntas obligatorias de análisis (sección 9 de la guía)
 
@@ -195,12 +228,12 @@ uno por uno, cayendo en O(n), como se vio con los 2,000 nodos ordenados (0.00012
 
 **8. ¿Qué estructura elegiría para recuperar un estudiante completo por carnet? Justifique.**
 Dictionary. El carnet es un identificador único y funciona naturalmente como clave: en
-0.000000149 s el Dict devuelve el registro completo del estudiante, muy por debajo de
+0.000000134 s el Dict devuelve el registro completo del estudiante, muy por debajo de
 List (0.0046 s) o del árbol degenerado (0.00013 s), y ese tiempo no crece con n.
 
 **9. ¿Qué estructura elegiría si solamente necesita saber si un carnet existe? Justifique.**
 Set. Ofrece el mismo costo O(1) promedio que Dict para verificar pertenencia
-(0.000000126 s en nuestra prueba), pero sin guardar el registro completo, así que ocupa
+(0.000000129 s en nuestra prueba), pero sin guardar el registro completo, así que ocupa
 menos memoria cuando no se necesita recuperar los datos del estudiante.
 
 **10. Si el sistema realiza 70% búsquedas, 20% inserciones y 10% reportes, ¿qué decisión de diseño tomaría y por qué?**

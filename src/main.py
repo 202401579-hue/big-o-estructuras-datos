@@ -129,21 +129,48 @@ def main():
 
     CARNET_INEXISTENTE = "EST999999"
     print("\n8) Carnet inexistente")
+
+    lista_completa = ListaEnlazada()
+    for estudiante in estudiantes:
+        lista_completa.insertar_inicio(estudiante)
+
+    print(f"   Las cuatro estructuras contienen los mismos {len(estudiantes):,} registros")
     t_lista_no = medir(lambda: buscar_lista(estudiantes, CARNET_INEXISTENTE), REPETICIONES)
     t_set_no = medir(lambda: CARNET_INEXISTENTE in carnets_set, REPETICIONES)
     t_dict_no = medir(lambda: estudiantes_dict.get(CARNET_INEXISTENTE), REPETICIONES)
-    t_enlazada_no = medir(lambda: lista_grande.buscar(CARNET_INEXISTENTE), REPETICIONES)
+    t_enlazada_no = medir(lambda: lista_completa.buscar(CARNET_INEXISTENTE), REPETICIONES)
     print(f"LIST           : {t_lista_no:.10f} s")
     print(f"SET            : {t_set_no:.10f} s")
     print(f"DICT           : {t_dict_no:.10f} s")
     print(f"LISTA ENLAZADA : {t_enlazada_no:.10f} s")
 
     print("\n9) Construccion vs consulta")
+
+    muestra_bst = estudiantes.copy()
+    random.shuffle(muestra_bst)
+
+    def construir_lista_enlazada():
+        enlazada = ListaEnlazada()
+        for estudiante in estudiantes:
+            enlazada.insertar_inicio(estudiante)
+        return enlazada
+
+    def construir_bst():
+        arbol_completo = ArbolBST()
+        for estudiante in muestra_bst:
+            arbol_completo.insertar(estudiante)
+        return arbol_completo
+
     t_constr_set = medir(lambda: {e["carnet"] for e in estudiantes}, 5)
     t_constr_dict = medir(lambda: {e["carnet"]: e for e in estudiantes}, 5)
-    print(f"Construir SET  : {t_constr_set:.10f} s")
-    print(f"Construir DICT : {t_constr_dict:.10f} s")
-    print(f"Consultar DICT : {t_dict_no:.10f} s")
+    t_constr_enlazada = medir(construir_lista_enlazada, 5)
+    t_constr_bst = medir(construir_bst, 5)
+
+    print(f"Construir SET            : {t_constr_set:.10f} s")
+    print(f"Construir DICT           : {t_constr_dict:.10f} s")
+    print(f"Construir LISTA ENLAZADA : {t_constr_enlazada:.10f} s")
+    print(f"Construir BST (mezclado) : {t_constr_bst:.10f} s")
+    print(f"Consultar DICT           : {t_dict_no:.10f} s")
 
 
 if __name__ == "__main__":
