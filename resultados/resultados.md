@@ -89,6 +89,53 @@ primer nodo se encontró en 0.000000238 s, pero el último tardó 0.000411 s, un
 veces más, porque hubo que recorrer los 10,000 nodos uno por uno. La lista enlazada no
 tiene acceso directo por posición: O(n).
 
+## Árbol binario de búsqueda (paso 8)
+
+| Caso | Tiempo | Big O |
+|---|---:|---|
+| BST mezclado con random.shuffle (5,000 nodos) | 0.0000008190 s | ~O(log n) |
+| BST con carnets ya ordenados (2,000 nodos) | 0.0001296190 s | O(n) |
+
+### Punto de control 8
+La conclusión no puede afirmar que todo árbol binario de búsqueda garantiza O(log n), eso
+solo ocurre si el árbol está razonablemente balanceado. La evidencia lo muestra con
+claridad, el árbol degenerado tardó 0.0001296 s para buscar en apenas 2,000 nodos, unas
+158 veces más que el árbol mezclado, que resolvió la búsqueda en 0.0000008 s sobre 5,000
+nodos más del doble de elementos, la causa es estructural, no de tamaño al insertar
+carnets ya ordenados, cada nuevo nodo siempre es mayor que el anterior, así que el árbol
+crece en una sola dirección y se convierte prácticamente en una lista enlazada de un solo
+brazo, de hecho, con una implementación recursiva de la inserción, esa cadena de 2,000
+niveles superaba el límite de recursión de Python y el programa fallaba con
+`RecursionError` hubo que reescribir la inserción de forma iterativa para poder completar
+la medición, `random.shuffle` antes de insertar es justamente lo que evita este escenario,
+al repartir los valores de forma que el árbol se ramifique en ambas direcciones.
+
+## Carnet inexistente (paso 9)
+
+| Estructura | Tiempo buscando EST999999 | Big O |
+|---|---:|---|
+| List | 0.0049407950 s | O(n) siempre |
+| Set | 0.0000001260 s | O(1) promedio |
+| Dict | 0.0000001490 s | O(1) promedio |
+| Lista enlazada | 0.0003419980 s | O(n) siempre |
+
+Al no existir el carnet, List y la lista enlazada ya no pueden detenerse al encontrar una
+coincidencia, así que recorren los n elementos completos antes de concluir que no está,
+List tardó 0.00494 s prácticamente lo mismo que su búsqueda exitosa, porque el peor caso
+de una búsqueda lineal siempre implica revisar toda la colección, Set y Dict, en cambio
+casi no cambian frente a una búsqueda exitosa (0.000000126 s y 0.000000149 s) porque el
+hash los lleva directo a la posición donde debería estar el carnet y al no encontrarlo
+ahí responden de inmediato sin recorrer nada más, la diferencia entre List y Set en este
+caso es de casi 39,213 veces.
+
+## Construcción vs consulta (sección 6)
+
+Construir el Set tardó 0.0103227 s y el Dict 0.0169172 s, frente a 0.000000149 s por cada
+consulta al Dict, es decir que construir el Dictionary una sola vez cuesta aproximadamente
+lo mismo que 113,538 consultas individuales, esa inversión inicial se paga sola en cuanto
+el sistema hace más de esas 113,500 búsquedas por carnet, lo cual es razonable esperar en
+cualquier sistema que consulte estudiantes con cierta frecuencia.
+
 ## Preguntas obligatorias de análisis (sección 9 de la guía)
 
 **4. ¿Cuál es la diferencia entre medir segundos y analizar Big O?**
@@ -108,6 +155,39 @@ buscar, en cambio, solo se conoce la cabeza, así que hay que avanzar nodo por n
 encontrar el carnet. En el peor caso (el último nodo o un carnet que no existe) se
 revisan los n nodos, como se vio en la diferencia entre buscar el primer nodo y el último.
 
+**6. ¿Qué condición permite que un árbol de búsqueda se acerque a O(log n)?**
+Que esté razonablemente balanceado, es decir que en cada inserción los valores se
+repartan entre el subárbol izquierdo y el derecho en lugar de acumularse todos hacia un
+mismo lado, por eso al insertar la muestra mezclada con `random.shuffle` el árbol de
+5,000 nodos resolvió la búsqueda en 0.0000008 s.
+
+**7. ¿Qué ocurre con el BST si se inserta información ya ordenada?**
+Se degenera en una cadena, cada nuevo carnet es mayor que el anterior, así que siempre
+se cuelga del mismo lado (la derecha) y el árbol termina teniendo la forma de una lista
+enlazada, la búsqueda deja de dividir el problema a la mitad en cada paso y pasa a
+revisar los nodos uno por uno, cayendo en O(n), como se vio con los 2,000 nodos
+ordenados (0.0001296 s, 158 veces más lento que el mezclado).
+
+**8. ¿Qué estructura elegiría para recuperar un estudiante completo por carnet? Justifique.**
+Dictionary. El carnet es un identificador único y funciona naturalmente como clave en
+0.000000149 s devuelve el registro completo del estudiante muy por debajo de List
+(0.0058 s) o del árbol degenerado.
+
+**9. ¿Qué estructura elegiría si solamente necesita saber si un carnet existe? Justifique.**
+Set. Ofrece el mismo costo O(1) promedio que Dict para verificar pertenencia
+(0.000000126 s en nuestra prueba) pero sin guardar el registro completo, así que ocupa
+menos memoria cuando no se necesita recuperar los datos del estudiante.
+
+**10. Si el sistema realiza 70% búsquedas, 20% inserciones y 10% reportes, ¿qué decisión de diseño tomaría y por qué?**
+Con las búsquedas dominando el uso (70%), conviene pagar el costo de construir un
+Dictionary una sola vez 0.0169 s en nuestra máquina porque esa inversión se amortiza
+rápido, equivale a apenas 113,538 consultas, y un sistema real hará muchísimas más que
+esas a lo largo de su vida útil, las inserciones (20%) también se benefician, ya que
+agregar una clave nueva a un Dict es O(1) promedio, solo si los reportes (10%)
+requirieran recorrer los datos en orden por carnet valdría la pena mantener también una
+estructura ordenada aparte, pero para la mezcla de operaciones descrita, Dictionary es
+la base más conveniente.
+
 ## Conclusión
 
 Al comparar las estructuras sobre el mismo conjunto de 100,000 estudiantes quedó
@@ -119,12 +199,17 @@ cada estructura organiza la información: List y la lista enlazada recorren
 elemento por elemento, por lo que su costo crece con n, mientras que Set y Dict
 usan hashing y acceden de forma prácticamente directa. El árbol binario de
 búsqueda se ubica en un punto intermedio, ya que descarta parte del espacio en
-cada comparación y se acerca a O(log n), pero eso solo se cumple si el árbol
-está razonablemente balanceado; un BST básico al que se le insertan carnets ya
-ordenados degenera en una cadena y termina comportándose como O(n). También se
-observó que no existe una única complejidad por estructura: una lista enlazada
-inserta al inicio en O(1) pero busca en O(n), así que la complejidad depende de
-la operación y no del nombre de la estructura. Por eso la decisión de diseño se
-justifica según las operaciones predominantes del sistema: para consultar
-estudiantes por carnet de forma constante, Dictionary es la opción más
-conveniente.
+cada comparación y se acerca a O(log n) cuando está razonablemente balanceado, en
+nuestras pruebas el árbol mezclado con `random.shuffle` resolvió la búsqueda en
+0.0000008 s sobre 5,000 nodos, mientras que el mismo árbol con carnets insertados
+ya ordenados (2,000 nodos, menos de la mitad) tardó 0.0001296 s, 158 veces más
+lento, y con la implementación recursiva original ni siquiera pudo completarse
+por exceder el límite de recursión de Python. También se observó que no existe
+una única complejidad por estructura, una lista enlazada inserta al inicio en
+O(1) pero busca en O(n), y una búsqueda fallida obliga a List y a la lista
+enlazada a recorrer la colección completa (O(n) siempre), mientras que Set y
+Dict casi no lo notan. Por eso la decisión de diseño se justifica según las
+operaciones predominantes del sistema: para un escenario con 70% de búsquedas,
+20% de inserciones y 10% de reportes, Dictionary es la opción más conveniente,
+ya que el costo de construirlo (0.0169 s) se amortiza en apenas 113,538
+consultas frente a las miles o millones que hará un sistema real.

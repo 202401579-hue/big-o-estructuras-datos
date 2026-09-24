@@ -10,17 +10,26 @@ class ArbolBST:
         self.raiz = None
 
     def insertar(self, dato):
-        self.raiz = self._insertar(self.raiz, dato)
+        nuevo = NodoArbol(dato)
 
-    def _insertar(self, nodo, dato):
-        if nodo is None:
-            return NodoArbol(dato)
+        if self.raiz is None:
+            self.raiz = nuevo
+            return
 
-        if dato["carnet"] < nodo.dato["carnet"]:
-            nodo.izquierda = self._insertar(nodo.izquierda, dato)
-        elif dato["carnet"] > nodo.dato["carnet"]:
-            nodo.derecha = self._insertar(nodo.derecha, dato)
-        return nodo
+        actual = self.raiz
+        while True:
+            if dato["carnet"] < actual.dato["carnet"]:
+                if actual.izquierda is None:
+                    actual.izquierda = nuevo
+                    return
+                actual = actual.izquierda
+            elif dato["carnet"] > actual.dato["carnet"]:
+                if actual.derecha is None:
+                    actual.derecha = nuevo
+                    return
+                actual = actual.derecha
+            else:
+                return
 
     def buscar(self, carnet):
         actual = self.raiz
